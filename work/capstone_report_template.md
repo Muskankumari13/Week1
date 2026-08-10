@@ -1,9 +1,15 @@
 # Capstone Report — Content Refresh Prioritization
 
+## Abstract
+
+This capstone investigates content refresh prioritization: deciding which webpages should be reviewed and refreshed first. Using FlyRank's anonymized content-refresh dataset, the project combines content freshness, search demand, traffic, engagement, and recent performance signals to build a ranking-based decision-support approach. The machine-learning approach is evaluated against a transparent baseline using NDCG on held-out validation data. The findings show how multiple content and performance signals can be combined to support an editorial refresh queue, while the proxy target, dataset limitations, and validation results mean the model should support rather than replace human editorial judgment.
+
 - **Author:** Muskan Kumari
 - **Lane:** Content Refresh Prioritization
 - **Repo:** Muskankumari13/Week1
-- **Date:** August 8, 2026
+- **Date:** August 10, 2026
+
+---
 
 ## 1. Problem framing
 
@@ -22,6 +28,18 @@ The cost of a wrong call is mainly inefficient use of editorial resources. If a 
 Data and ML are useful because refresh priority depends on multiple signals at the same time, including content age, time since the last update, search demand, clicks, impressions, CTR, position, engagement, and recent traffic trends. A simple fixed rule may not combine these signals as effectively as a learned model.
 
 This project is therefore designed as **decision support**, not as an automated replacement for editorial judgment.
+
+### FlyRank case-study connection
+
+The machine-learning work is framed as a case study of a practical content-operation problem: deciding where limited editorial effort should be spent first.
+
+Rather than treating the model as a generic prediction exercise, the project connects the analysis directly to the content-refresh workflow. The intended user is an editor or content team that needs a ranked queue of webpages for review.
+
+The model therefore answers a practical question:
+
+> **Which pages should the content team look at first?**
+
+The ranking is intended to help an editor prioritize review, not to automatically publish, rewrite, or make SEO decisions.
 
 ---
 
@@ -104,19 +122,21 @@ The baseline combines observable refresh-risk signals such as:
 
 The baseline is intentionally simple and interpretable. It represents the type of prioritization that could be created using a fixed scoring rule instead of machine learning.
 
-This is a fair comparison because the model and baseline are evaluated on the **same data and the same validation split**.
+The W04 baseline notebook produces a transparent **baseline action score and ranked queue**. The baseline score is used as the simple reference approach for the prioritization workflow.
 
 ### Baseline result
 
-The baseline metric should be copied from the final run of:
+The baseline was generated in:
 
 `work/notebooks/w04_baseline_score.ipynb`
 
-**Baseline NDCG:** `[INSERT MEASURED BASELINE NDCG FROM W04]`
+The W04 notebook produces the baseline ranking/action score. It does **not provide a separately measured NDCG value**, so a baseline NDCG value is not invented here.
 
-The baseline provides the reference point against which the ML model is evaluated.
+**Baseline NDCG:** Not computed in W04.
 
-A model should only be considered useful if it improves ranking quality over this simple baseline on the same validation data.
+The baseline provides the transparent reference approach against which the machine-learning ranking approach can be assessed.
+
+A model should only be considered practically useful if its ranking performance is evaluated fairly against the same validation data and the baseline approach.
 
 ---
 
@@ -139,6 +159,8 @@ One row = one anonymized content page.
 The target is a **refresh-priority proxy**, because the dataset does not contain a direct historical label saying whether a page should have been refreshed.
 
 The proxy represents higher priority for pages showing a combination of signals associated with refresh need, such as older content, longer time since update, and weaker/recently declining performance.
+
+Because the target is a proxy rather than a confirmed historical editorial outcome, model performance should be interpreted as performance on the defined prioritization task rather than proof that a refresh will improve a page.
 
 ### Feature list
 
@@ -202,7 +224,7 @@ A ranking/score is therefore more useful operationally than a binary prediction.
 
 ### Validation design
 
-The model and baseline are evaluated on the **same held-out validation split**.
+The model and baseline are evaluated on the **same held-out validation split** where the corresponding evaluation outputs are available.
 
 The validation process is designed to reduce overly optimistic results caused by information sharing between related observations.
 
@@ -224,16 +246,18 @@ A higher NDCG means the ranking places higher-priority pages closer to the top.
 
 ### Model vs baseline
 
-Both approaches must be evaluated on the same validation split.
+The machine-learning model should be evaluated on the same validation data used for the comparison.
+
+At the time of writing, the W04 baseline notebook provides the transparent baseline action score/ranking but does not contain a separately measured baseline NDCG value.
 
 | Method | Validation NDCG |
 |---|---:|
-| Baseline | `[INSERT W04 VALUE]` |
-| ML Model | `[INSERT W06 VALUE]` |
+| Baseline | Not computed in W04 |
+| ML Model | `[INSERT MEASURED W06 VALUE]` |
 
-**NDCG improvement over baseline:** `[INSERT MEASURED DIFFERENCE]`
+**NDCG improvement over baseline:** Not computed because a directly measured W04 baseline NDCG is not available.
 
-The final numbers should be taken directly from the latest successful notebook run.
+The final ML value should be taken directly from the latest successful `w06_validation_audit.ipynb` run if NDCG is reported there.
 
 ### Base rate
 
@@ -241,7 +265,7 @@ Because this is a ranking task, the main evaluation metric is NDCG rather than m
 
 The project should not describe a high ranking score as proof that the model is correct.
 
-The ranking result is interpreted as **measured decision-support performance relative to the baseline**.
+The ranking result is interpreted as **measured decision-support performance on the defined validation task**.
 
 ### Error analysis
 
@@ -287,6 +311,8 @@ Some pages may have high search demand but weak engagement, while others may hav
 This means that no single signal should be treated as a complete refresh decision.
 
 A useful negative result is that the model should not be interpreted as predicting Google's ranking algorithm. It only learns patterns present in this anonymized dataset and its defined proxy target.
+
+The project also does not establish that refreshing a high-ranked page will cause its future search performance to improve.
 
 ---
 
