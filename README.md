@@ -1,116 +1,480 @@
-# FlyRank ML Internship — Starter Repo
 
-**Applied Search Intelligence: Google Search Ranking & Discoverability**
+````markdown
+# Content Refresh Prioritization
 
-This is the starting point for the FlyRank ML Internship. You **clone it into your own public
-repo** (one click — *Use this template*), build everything there, and submit that repo URL on
-each assignment in your portal — it's your workspace, your submission, and your portfolio all
-at once. The rhythm is simple: do the work, commit it, submit on the card. Done.
+A machine-learning decision-support project that helps content teams prioritize which webpages should be reviewed and refreshed first.
 
-Everything here runs on a small **anonymized** slice of real FlyRank search data. No credentials,
-no private client data, no setup headaches.
+## Overview
 
-> **New here?** Two reads: **[SETUP.md](SETUP.md)** (GitHub, Colab, and data access — ten
-> minutes, with every silent pitfall flagged), then **[GUIDE.md](GUIDE.md)** (every file
-> explained, what to edit vs. leave alone, and where your own work goes — five minutes).
+This capstone investigates **content refresh prioritization** using FlyRank's anonymized content-refresh dataset.
 
----
+The project combines content freshness, search demand, traffic, engagement, and recent performance signals to identify pages that may deserve editorial attention.
 
-## Quickstart — first win in 2 minutes
+The final system is designed as a **decision-support tool**, not as an automated replacement for human editorial judgment.
 
-The fastest path is Google Colab (one click, zero install). Open Notebook 1 and run all cells:
+The practical question is:
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/flyrank-bih/flyrank-ml-internship-starter/blob/main/notebooks/01_first_look_and_discovery.ipynb)
- **Week 1 — Run it, then discover a real truth yourself**
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/flyrank-bih/flyrank-ml-internship-starter/blob/main/notebooks/02_your_first_readable_model.ipynb)
- **Week 2 — The model is just a rule you can read**
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/flyrank-bih/flyrank-ml-internship-starter/blob/main/notebooks/03_working_with_the_full_release.ipynb)
- **Weeks 3+ — The full release (~79M rows) via DuckDB, no download needed** — hosted at
- [`FlyRank/internship-warehouse`](https://huggingface.co/datasets/FlyRank/internship-warehouse) (gated: request access + accept the data-use terms, approval is instant)
-
-### Prefer local?
-
-```bash
-git clone <this-repo-url>
-cd flyrank-ml-internship-starter
-pip install -r requirements.txt          # or: uv pip install -r requirements.txt
-python scripts/run_all.py
-```
-
-That runs the whole pipeline on the bundled sample and writes results to `outputs/`.
+> **Which webpages should the content team look at first?**
 
 ---
 
-## What you get
+## Problem
 
-| Path | What it is |
+Content teams often have a large number of webpages but limited time and editorial resources.
+
+A manual process may make it difficult to determine which pages should be reviewed first. This project uses multiple content and performance signals to create a prioritization approach that can help organize an editorial refresh queue.
+
+The main signals include:
+
+- Content age
+- Days since last update
+- Search volume
+- Impressions
+- Clicks
+- CTR
+- Sessions
+- Engagement
+- Recent performance
+
+The output is converted into actionable priority categories:
+
+- Refresh immediately
+- Review soon
+- Monitor
+- No action
+
+---
+
+## Intended User
+
+The intended user is an:
+
+- SEO manager
+- Content strategist
+- Editorial team
+- Content operations team
+
+The model provides a ranked or categorized queue that a human can review before making a final refresh decision.
+
+---
+
+## Dataset
+
+The project uses FlyRank's anonymized content-refresh dataset.
+
+Dataset characteristics:
+
+- **30,000 rows**
+- **44 columns**
+- One row represents one anonymized content page
+
+The dataset contains signals related to:
+
+- Search demand
+- Competition
+- Content characteristics
+- Search impressions
+- Clicks
+- Page views
+- Sessions
+- Content age
+- Days since last update
+- CTR
+- Average search position
+- Engagement
+- Recent and previous-period performance
+
+No client-identifying information is used in this project.
+
+---
+
+## Data Safety and Leakage Prevention
+
+The following identifiers were excluded from predictive features:
+
+- `content_id`
+- `client_id`
+
+Outcome-related fields such as:
+
+- `trend_direction`
+- `trend_pct`
+
+were also excluded from the predictive feature set where they could duplicate target information or introduce leakage.
+
+The validation audit checked that:
+
+- The target column was not used as a feature.
+- Missing values were checked.
+- Duplicate rows were checked.
+- Future information was considered during validation.
+
+Final validation checks:
+
+| Check | Result |
 |---|---|
-| `notebooks/` | Week 1–2 **first-win notebooks** (Colab-ready). Start here. |
-| `scripts/01–05` + `run_all.py` | The runnable reference pipeline: prepare → baseline → train → evaluate → PDF. |
-| `data/raw/content_refresh_anonymized.csv` | The anonymized starter dataset (~30k pages). |
-| `outputs/` | Example outputs so you can see the **target shape** (`model_report.md`, `refresh_queue_sample.csv`, `charts/`). |
-| `work/` | **Your space.** Lane experiments and your capstone live here — see `work/README.md`. |
-| `docs/` | The core docs + the data dictionary (see below). |
-
-### Read these (in `docs/`)
-
-1. **`ml-core-foundation-framework.md`** — the first-principles map of ML as a whole system. The backbone of the live sessions.
-2. **`ml-intern-dataset-and-lane-guide.md`** — how to use the data safely, the capstone workflow, and the analysis "lanes" you can pick from.
-3. **`intern-free-tooling-guide.md`** — the zero-budget tool stack (Python, Colab, free AI assistants). You never need to pay for anything.
-4. **`data-dictionary.md`** — all 44 columns: meaning, scale, and gotchas. Keep it open while you work.
+| Target column used as feature | False |
+| Missing values | 0 |
+| Duplicate rows | 0 |
 
 ---
 
-## The pipeline (what `run_all.py` does)
+## Methodology
+
+The project follows this workflow:
 
 ```text
-01_prepare_features.py   clean + build the feature vector, define the label
-02_baseline_score.py     a transparent hand-rule "fix this first" score
-03_train_model.py        logistic regression, decision tree, random forest (client-holdout split)
-04_evaluate_and_export.py  ranked queue + charts + Markdown report
-05_build_pdf_report.py   a shareable PDF summary
+Problem Framing
+      ↓
+Data & Leakage Checks
+      ↓
+Rule-Based Baseline
+      ↓
+Random Forest Model
+      ↓
+Time-Aware Validation
+      ↓
+Action Prioritization
+      ↓
+Editorial Decision Support
+````
+
+The workflow was developed across the Week 1–7 notebooks.
+
+---
+
+## W04 — Rule-Based Baseline
+
+A transparent rule-based baseline was created before the machine-learning model.
+
+The baseline combines observable signals such as:
+
+* Content age
+* Days since last update
+* Recent performance
+* Search demand
+* Engagement/performance signals
+
+The purpose of the baseline was to provide a simple and interpretable reference approach.
+
+The baseline produces a prioritization/action score and ranked queue.
+
+A separate numerical baseline NDCG value was not recorded in the W04 notebook, so no baseline NDCG improvement is claimed.
+
+---
+
+## W05 — Random Forest Model
+
+The Week 5 model uses a **Random Forest classifier**.
+
+### Model result
+
+**Random Forest Accuracy: 0.668**
+
+This corresponds to an observed accuracy of approximately **66.8%** on the random train-test split.
+
+### Feature importance
+
+The strongest model features were:
+
+| Feature                  | Importance |
+| ------------------------ | ---------: |
+| `impressions_90d`        |   0.315003 |
+| `content_age_days`       |   0.210479 |
+| `sessions_90d`           |   0.154071 |
+| `ctr`                    |   0.104537 |
+| `search_volume`          |   0.085307 |
+| `clicks_90d`             |   0.075994 |
+| `days_since_last_update` |   0.054609 |
+
+`impressions_90d` was the most important feature in the trained Random Forest, followed by `content_age_days` and `sessions_90d`.
+
+Feature importance indicates model reliance within this trained model; it does not establish that a feature causes content performance changes.
+
+---
+
+## W06 — Validation
+
+The Week 6 validation audit tested the model using **TimeSeriesSplit**.
+
+This provides a more conservative and time-aware evaluation than relying only on a random train-test split.
+
+### Validation results
+
+| Evaluation                  |    Accuracy |
+| --------------------------- | ----------: |
+| W05 Random Train-Test Split |       0.668 |
+| W06 TimeSeriesSplit         | **0.66064** |
+
+### Fold scores
+
+| Fold | Accuracy |
+| ---- | -------: |
+| 1    |   0.6524 |
+| 2    |   0.6558 |
+| 3    |   0.6664 |
+| 4    |   0.6666 |
+| 5    |   0.6620 |
+
+The average TimeSeriesSplit accuracy was **0.66064**.
+
+The lower time-aware result suggests that the random split may have provided a slightly optimistic estimate.
+
+Therefore, the TimeSeriesSplit result is treated as the more conservative validation result.
+
+### Validation integrity
+
+The audit found:
+
+* Target column used as feature: **False**
+* Missing values: **0**
+* Duplicate rows: **0**
+
+No obvious target leakage was identified in the final feature set during the validation audit.
+
+---
+
+## W07 — Action Playbook
+
+The model output was converted into practical editorial action categories.
+
+### Final action distribution
+
+| Action              |      Pages | Percentage |
+| ------------------- | ---------: | ---------: |
+| Refresh immediately |      5,956 |     19.85% |
+| Review soon         |      6,018 |     20.06% |
+| Monitor             |      6,052 |     20.17% |
+| No action           |     11,974 |     39.91% |
+| **Total**           | **30,000** |   **100%** |
+
+Overall:
+
+* **5,956 pages** should be considered for immediate refresh.
+* **6,018 pages** should be reviewed soon.
+* **6,052 pages** should be monitored.
+* **11,974 pages** were assigned no action.
+
+In total, **18,026 pages (60.09%)** received some level of review or monitoring recommendation.
+
+The action categories are intended to organize editorial work rather than automatically trigger publishing or content changes.
+
+---
+
+## How an Editor Could Use the Output
+
+A content team could use the output as follows:
+
+1. Generate the refresh-priority queue.
+2. Start with pages marked **Refresh immediately**.
+3. Manually review the page for outdated or missing information.
+4. Check whether search intent has changed.
+5. Confirm that the page has meaningful search or business value.
+6. Refresh the page when editorial review supports the recommendation.
+7. Track performance after the refresh.
+8. Compare future performance with the pre-refresh period.
+
+The human editor remains responsible for the final decision.
+
+---
+
+## Evaluation Interpretation
+
+The model achieved:
+
+* **0.668 accuracy** on the random train-test split.
+* **0.66064 average accuracy** using TimeSeriesSplit.
+
+These are observed measurements on this dataset and validation setup.
+
+They should not be interpreted as proof that the model will perform identically on future datasets.
+
+The project also does not establish that refreshing a high-priority page will cause its future search performance to improve.
+
+The target is a **refresh-priority proxy**, not a confirmed historical editorial outcome.
+
+Therefore, the model provides directional decision support rather than causal predictions.
+
+---
+
+## Limitations
+
+Several limitations should be considered.
+
+### 1. Proxy target
+
+The dataset does not contain a direct historical label stating whether a webpage actually needed a refresh.
+
+The target is therefore a proxy based on available signals.
+
+### 2. No causal evidence
+
+The model identifies patterns associated with the defined prioritization target.
+
+It does not prove that refreshing a page will improve traffic, rankings, clicks, or conversions.
+
+### 3. Dataset limitations
+
+The model learns from the available anonymized dataset and may not generalize to every website, industry, content type, or future dataset.
+
+### 4. Missing business context
+
+Some editorial decisions depend on information not represented in the dataset, such as:
+
+* Strategic importance
+* Brand priorities
+* Business goals
+* Legal considerations
+* Editorial expertise
+* Major product or market changes
+
+### 5. Human review is required
+
+A high model priority should be treated as a recommendation for review, not an automatic instruction to modify a page.
+
+---
+
+## Reproducibility
+
+The project is maintained in the `Week1` repository.
+
+Relevant notebooks are located under:
+
+```text
+work/notebooks/
 ```
 
-On the bundled sample, the learned model clearly beats the hand-written rule at picking the right
-pages to review first (**Precision@50 ≈ 0.24 → 0.74**; the model number can land 0.68–0.74
-depending on library versions — the ~3x lift is the point). The notebooks compute these numbers
-live, so they always reflect the current data and environment.
+Main notebooks:
 
-**Teaching point:** the model is the capstone, but the *workflow* is the lesson —
-`problem framing → data cleaning → baseline → first model → evaluation → explainable recommendation`.
+```text
+w01_research_question.ipynb
+w02_ml_task_framing.ipynb
+w03_data_contract.ipynb
+w03_feature_leakage_check.ipynb
+w04_signal_audit.ipynb
+w04_baseline_score.ipynb
+w05_model.ipynb
+w06_validation_audit.ipynb
+w07_action_playbook.ipynb
+capstone.ipynb
+```
 
----
+### Repository structure
 
-## Data safety (read `DATA_USE.md`)
+```text
+Week1/
+├── data/
+│   └── raw/
+├── work/
+│   ├── notebooks/
+│   ├── figures/
+│   └── capstone_report.md
+├── scripts/
+├── docs/
+├── outputs/
+├── requirements.txt
+└── README.md
+```
 
-- Only the small **anonymized** CSV ships here — no client names, domains, URLs, titles, or keywords.
-- **Never** add raw private client data to this repo or your fork. Need more data? Request an approved
-  release from your mentor — never export it yourself.
-- Don't paste client data into third-party AI tools.
-- Frame every result as **observed / measured / directional / decision-support** — never
-  "I predicted Google's algorithm."
-
-The `.gitignore` blocks datasets by default, and CI fails any commit that includes a dataset.
-
----
-
-## Assignments & schedule
-
-Weekly assignments, live events, and the capstone live on **your portal board** (your
-enrollment email has your access link). This repo is the shared technical foundation they all
-build on — and the `skills/` folder here is the instruction library for your AI assistant
-(start at [skills/README.md](skills/README.md)).
-
-**First time with GitHub?** You need exactly four things (full walkthrough: [SETUP.md](SETUP.md)):
-1. A free account at github.com.
-2. Your own copy of this repo: **Use this template → Create a new repository** → public.
-   (One click — brings the notebooks, `work/`, and the CI leak-guard with it.)
-3. In Colab: *File → Save a copy in GitHub* → pick your copy, branch `main` (Colab handles auth).
-4. That's your submission repo — share its **github.com/you/your-repo** URL with Assignment 1
-   (never a colab.research.google.com or drive.google.com link).
+The raw dataset should not be committed as a new dataset file or copied into the repository outside the provided project structure.
 
 ---
 
-*Track leads: Mirza Ašćerić (ML) · Hole (data engineering). Code under MIT (see `LICENSE`); data under `DATA_USE.md`.*
+## Setup
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Muskankumari13/Week1.git
+cd Week1
+```
+
+Install the required Python packages:
+
+```bash
+pip install -r requirements.txt
+```
+
+The notebooks can also be run using Google Colab.
+
+For the capstone workflow, open the relevant notebooks in:
+
+```text
+work/notebooks/
+```
+
+and run the workflow in sequence.
+
+---
+
+## Usage
+
+The general workflow is:
+
+```text
+Load anonymized dataset
+        ↓
+Check data quality
+        ↓
+Define prioritization target
+        ↓
+Train Random Forest
+        ↓
+Validate using TimeSeriesSplit
+        ↓
+Generate priority/action categories
+        ↓
+Review recommendations manually
+```
+
+The resulting action categories can be used to create an editorial review queue.
+
+---
+
+## Project Files
+
+| File                         | Purpose                                 |
+| ---------------------------- | --------------------------------------- |
+| `w04_baseline_score.ipynb`   | Rule-based baseline                     |
+| `w05_model.ipynb`            | Random Forest model                     |
+| `w06_validation_audit.ipynb` | Time-aware validation and leakage audit |
+| `w07_action_playbook.ipynb`  | Action categories and recommendations   |
+| `capstone.ipynb`             | Final capstone analysis                 |
+| `capstone_report.md`         | Written capstone report                 |
+
+---
+
+## AI Transparency
+
+AI tools were used as a thinking and development assistant during parts of the project, including helping with code explanations, debugging, structuring documentation, and interpreting workflow requirements.
+
+The model results, validation checks, and reported metrics were reviewed against the executed notebooks and outputs.
+
+The final decisions about the methodology, claims, limitations, and interpretation remain the author's responsibility.
+
+---
+
+## Conclusion
+
+This project demonstrates how content freshness, search demand, traffic, engagement, and recent performance signals can be combined to support content refresh prioritization.
+
+The Random Forest model achieved an observed accuracy of **0.668** on the random split and **0.66064** under TimeSeriesSplit validation.
+
+The final action playbook classified 30,000 pages into practical editorial categories, with **5,956 pages marked for immediate refresh, 6,018 for review soon, 6,052 for monitoring, and 11,974 requiring no action**.
+
+The main conclusion is not that the model can automatically decide which pages should be refreshed. Instead, it provides a structured and measurable way to help editorial teams decide **where to look first**.
+
+Human editorial judgment remains essential.
+
+---
+
+## Author
+
+**Muskan Kumari**
+
+FlyRank ML Internship — Content Refresh Prioritization
+
+August 2026
+
+```
+
