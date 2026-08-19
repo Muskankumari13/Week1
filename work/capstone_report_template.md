@@ -2,7 +2,7 @@
 
 ## Abstract
 
-This capstone investigates content refresh prioritization: deciding which webpages should be reviewed and refreshed first. Using FlyRank's anonymized content-refresh dataset, the project combines content freshness, search demand, traffic, engagement, and recent performance signals to build a ranking-based decision-support approach. The machine-learning approach is evaluated against a transparent baseline using NDCG on held-out validation data. The findings show how multiple content and performance signals can be combined to support an editorial refresh queue, while the proxy target, dataset limitations, and validation results mean the model should support rather than replace human editorial judgment.
+This capstone investigates content refresh prioritization: deciding which webpages should be reviewed and refreshed first. Using FlyRank's anonymized content-refresh dataset, the project combines content freshness, search demand, traffic, engagement, and recent performance signals to build a ranking-based decision-support approach. The machine-learning approach is compared with a transparent rule-based baseline, and the Random Forest model is evaluated using both a random train-test split and time-aware validation. The findings show how multiple content and performance signals can be combined to support an editorial refresh queue, while the proxy target, dataset limitations, and validation results mean the model should support rather than replace human editorial judgment.
 
 - **Author:** Muskan Kumari
 - **Lane:** Content Refresh Prioritization
@@ -236,24 +236,35 @@ The validation design is documented in:
 
 ### Primary metric
 
-The primary ranking metric is:
+The primary evaluation metric used in the implemented model validation is **accuracy**.
 
-**NDCG — Normalized Discounted Cumulative Gain**
+The Week 5 Random Forest achieved an accuracy of **0.668** using a random train-test split. Under the more conservative TimeSeriesSplit validation in Week 6, the model achieved an average accuracy of **0.66064** across five folds.
 
-NDCG is appropriate because the practical goal is to place the most important pages near the top of the refresh queue.
+The five fold scores were:
 
-A higher NDCG means the ranking places higher-priority pages closer to the top.
+- 0.6524
+- 0.6558
+- 0.6664
+- 0.6666
+- 0.6620
+
+The lower TimeSeriesSplit result suggests that the random split may have provided a slightly optimistic estimate. Therefore, **0.66064 is treated as the more conservative validation result**.
+
+Because the W04 baseline did not have a measured NDCG value, no baseline NDCG comparison is claimed.
 
 ### Model vs baseline
 
 The machine-learning model should be evaluated on the same validation data used for the comparison.
 
 At the time of writing, the W04 baseline notebook provides the transparent baseline action score/ranking but does not contain a separately measured baseline NDCG value.
+### Model validation results
 
-| Method | Validation NDCG |
+| Evaluation | Accuracy |
 |---|---:|
-| Baseline | Not computed in W04 |
-| ML Model | `[INSERT MEASURED W06 VALUE]` |
+| W05 Random Forest — random split | 0.668 |
+| W06 TimeSeriesSplit — mean accuracy | 0.66064 |
+
+The W04 baseline provides a transparent rule-based ranking/action score, but a directly measured baseline accuracy or NDCG value was not recorded. Therefore, no numerical improvement over the baseline is claimed.
 
 **NDCG improvement over baseline:** Not computed because a directly measured W04 baseline NDCG is not available.
 
@@ -382,7 +393,19 @@ The recommendations are limited by:
 - The fact that historical association does not establish causation
 
 A human editor should make the final decision.
+### Final action distribution
 
+The final action playbook classified all 30,000 content pages into four operational categories:
+
+| Action | Pages | Percentage |
+|---|---:|---:|
+| Refresh immediately | 5,956 | 19.85% |
+| Review soon | 6,018 | 20.06% |
+| Monitor | 6,052 | 20.17% |
+| No action | 11,974 | 39.91% |
+| **Total** | **30,000** | **100%** |
+
+Overall, 18,026 pages (60.09%) received some level of review or monitoring recommendation, while 11,974 pages (39.91%) were assigned no action.
 ---
 
 ## 8. Reproducibility
